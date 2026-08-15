@@ -1,0 +1,14 @@
+{
+  "id": "zh-cn-menu",
+  "name": "简体中文菜单",
+  "version": "0.1.0",
+  "description": "将 OpenCode Desktop 的应用菜单翻译为简体中文。",
+  "engines": {
+    "opencode": "^1.18.0"
+  },
+  "permissions": ["ui.host"],
+  "entry": "index.html",
+  "contributes": {
+    "host": "host.js"
+  }
+}

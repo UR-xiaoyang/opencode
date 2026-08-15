@@ -22,6 +22,7 @@ import { truncateDiffs } from "@opencode-ai/core/util/truncate-diff"
 import FileTreeV2 from "@/components/file-tree-v2"
 import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
+import { useSync } from "@/context/sync"
 import {
   filterRenderableDiff,
   filterReviewFiles,
@@ -54,15 +55,17 @@ export type ReviewPanelV2Props = {
 
 export function ReviewPanelV2(props: ReviewPanelV2Props) {
   const sdk = useSDK()
+  const sync = useSync()
 
   const rawDiffs = createMemo(() => props.diffs().filter(filterRenderableDiff))
-  const truncateResult = createMemo(() => {
-    const config = sdk().config
-    return truncateDiffs(rawDiffs(), {
+  const diffOptions = createMemo(() => {
+    const config = sync().data.config
+    return {
       maxFiles: config?.diff?.max_files,
       maxPatchBytes: config?.diff?.max_patch_bytes,
-    })
+    }
   })
+  const truncateResult = createMemo(() => truncateDiffs(rawDiffs(), diffOptions()))
   const diffs = createMemo(() => truncateResult().diffs)
   const truncated = createMemo(() => truncateResult().truncated)
   const filteredFiles = createMemo(() =>
@@ -107,9 +110,7 @@ export function ReviewPanelV2(props: ReviewPanelV2Props) {
             </span>
           </Show>
           <Show when={truncated().patches > 0}>
-            <span class="ml-2 text-12-regular text-text-warning">
-              ({truncated().patches} large patches truncated)
-            </span>
+            <span class="ml-2 text-12-regular text-text-warning">({truncated().patches} large patches truncated)</span>
           </Show>
         </>
       }

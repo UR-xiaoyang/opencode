@@ -1,7 +1,14 @@
-import type { SnapshotFileDiff, VcsFileDiff } from "@opencode-ai/schema/vcs"
 import { ConfigDiff } from "../config/diff"
 
-export type DiffLike = SnapshotFileDiff | VcsFileDiff
+const encoder = new TextEncoder()
+
+export type DiffLike = {
+  readonly file?: string
+  readonly patch?: string
+  readonly additions: number
+  readonly deletions: number
+  readonly status?: "added" | "deleted" | "modified"
+}
 
 export interface TruncateDiffOptions {
   maxFiles?: number
@@ -13,6 +20,7 @@ export interface TruncateDiffResult<T extends DiffLike> {
   truncated: {
     files: boolean
     patches: number
+    patchFiles: string[]
     totalFiles: number
   }
 }
@@ -38,13 +46,15 @@ export function truncateDiffs<T extends DiffLike>(
   const selectedDiffs = truncatedFiles ? diffs.slice(0, maxFiles) : diffs
 
   let truncatedPatches = 0
+  const truncatedPatchFiles: string[] = []
   const processedDiffs = selectedDiffs.map((diff) => {
     if (!diff.patch) return diff
 
-    const patchBytes = Buffer.byteLength(diff.patch, "utf8")
+    const patchBytes = encoder.encode(diff.patch).byteLength
     if (patchBytes <= maxPatchBytes) return diff
 
     truncatedPatches++
+    if (diff.file) truncatedPatchFiles.push(diff.file)
     const truncationNotice = `[Patch truncated: ${formatBytes(patchBytes)} exceeds ${formatBytes(maxPatchBytes)} limit]\n\nThis file has too many changes to render safely. To review:\n- View the file directly\n- Use git diff on the command line\n- Increase diff.max_patch_bytes in your config`
 
     return {
@@ -58,6 +68,7 @@ export function truncateDiffs<T extends DiffLike>(
     truncated: {
       files: truncatedFiles,
       patches: truncatedPatches,
+      patchFiles: truncatedPatchFiles,
       totalFiles,
     },
   }
